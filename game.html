@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title> إما تجاوب أو.. ❤️</title>
+<style>
+body {
+  margin: 0;
+  font-family: 'Tahoma', sans-serif;
+  background: linear-gradient(135deg, #1e1e2f, #ff4f81);
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+.app {
+  width: 95%;
+  max-width: 520px;
+  background: rgba(0,0,0,0.45);
+  padding: 20px;
+  border-radius: 15px;
+  text-align: center;
+}
+input {
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  margin: 5px;
+  width: 40%;
+}
+button {
+  margin: 8px;
+  padding: 10px 15px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+}
+.primary { background: #fff; color: #ff4f81; }
+.secondary { background: transparent; border: 1px solid #fff; color: #fff; }
+#question { font-size: 20px; margin: 20px 0; }
+.progress { height: 6px; background: rgba(255,255,255,0.2); border-radius: 10px; overflow: hidden; }
+.progress-bar { height: 100%; width: 0%; background: #fff; }
+.hidden { display:none; }
+.rules {
+  text-align: right;
+  font-size: 14px;
+  margin: 15px 0;
+  line-height: 1.8;
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<h2>إما تجاوب أو..  </h2>
+
+<div id="setup">
+  <input id="p1" placeholder="اسم الشريك الأول">
+  <input id="p2" placeholder="اسم الشريك الثاني">
+
+  <div class="rules">
+    <strong>قوانين اللعبة:</strong><br>
+    - كل واحد يجاوب وقت دوره فقط<br>
+    - كل إجابة صادقة = نقطة 🎯<br>
+    - التخطي = تحدي بسيط 😏<br>
+    - امشوا مع المراحل بالترتيب<br>
+    - الفكرة: الصراحة + المتعة مو الفوز فقط ❤️
+  </div>
+
+  <button class="primary" onclick="startGame()">ابدأ</button>
+</div>
+
+<div id="game" class="hidden">
+  <div class="progress"><div class="progress-bar" id="progress"></div></div>
+  <p id="stage"></p>
+  <p id="turn"></p>
+  <div id="question"></div>
+
+  <button id="answerBtn" class="primary" onclick="answer()">جاوبت</button>
+  <button id="skipBtn" class="secondary" onclick="skip()">تخطي</button>
+
+  <p id="score"></p>
+</div>
+
+</div>
+
+<script>
+let p1Name, p2Name;
+
+const stages = [
+{
+name: "بداية خفيفة",
+questions: [
+"وش أكثر شيء شدّك فيني بالبداية؟",
+"متى حسّيت إنك ارتحت لي بدون تكلّف؟",
+"وش الموقف الصغير الي خلاك تحس إني مختلف/ـة؟",
+"وش أكثر لحظة ضحكنا فيها سوا؟",
+"ايش العادة البسيطة الي تعجبك فيني؟ ",
+"وش الموقف الي ابتسمت/ي فيه بسسبي؟"
+]
+},
+{
+name: "عمق حقيقي",
+questions: [
+"وش الشيء اللي تحتاجه مني بس ما قد طلبته؟",
+"متى آخر مرة زعلت مني وما قلت؟",
+"وش الشيء اللي يخليك تحس بالأمان معي؟",
+"وش خوفك الحقيقي في العلاقات؟",
+"كيف تحب أتعامل معك وقت زعلك؟",
+"وش الشيء اللي اسويه وتشوفه اكثر شي لطيف؟"
+]
+},
+{
+name: "صراحة مؤثرة",
+questions: [
+"وش نقطة ضعفي اللي تشوفها بوضوح؟",
+"لو في شيء تتمنى أغيّره فيني وش هو؟",
+"وش الشيء اللي ممكن يبعدنا لو ما انتبهنا له؟",
+"متى حسّيت إني قصّرت معك؟",
+"وش التصرف الي اسويه وممكن يزعلك مني مستقبلاً؟",
+"وش الشيء اللي تتمنى أكون أفضل فيه؟"
+]
+},
+{
+name: "تحديات",
+questions: [
+"قلد طريقتي بالكلام 😂",
+"قول 3 أشياء تحبها فيني بدون تفكير",
+"اكتب رسالة قصيرة عن شعورك في أول مره شفتني/ شفتيني ",
+"احكي موقف محرج صارلك بطريقة مضحكة",
+"مثّل أول لقاء بيننا بطريقة درامية ",
+"قل شيء عمرك ما قلته لي قبل"
+]
+}
+];
+
+const punishments = [
+"جهّز موعد كامل ",
+"اكتب رسالة حب طويلة ",
+"نفذ طلب لطيف من شريكك بدون رفض"
+];
+
+let s=0, q=0, turn=1, score1=0, score2=0;
+
+function startGame(){
+  p1Name = document.getElementById("p1").value || "الشريك الأول";
+  p2Name = document.getElementById("p2").value || "الشريك الثاني";
+
+  document.getElementById("setup").classList.add("hidden");
+  document.getElementById("game").classList.remove("hidden");
+
+  next();
+}
+
+function currentName(){
+  return turn===1 ? p1Name : p2Name;
+}
+
+function next(){
+  if(s>=stages.length) return endGame();
+
+  if(q>=stages[s].questions.length){
+    s++; q=0;
+  }
+
+  if(s>=stages.length) return endGame();
+
+  document.getElementById("stage").innerText = stages[s].name;
+  document.getElementById("turn").innerText = "دور: " + currentName();
+  document.getElementById("question").innerText = stages[s].questions[q];
+
+  updateProgress();
+}
+
+function answer(){
+  if(turn===1) score1++; else score2++;
+  nextTurn();
+}
+
+function skip(){
+  alert("تخطي = تحدي 😏");
+  nextTurn();
+}
+
+function nextTurn(){
+  turn = turn===1 ? 2 : 1;
+  q++;
+  updateScore();
+  next();
+}
+
+function updateScore(){
+  document.getElementById("score").innerText =
+    p1Name + ": " + score1 + " | " + p2Name + ": " + score2;
+}
+
+function updateProgress(){
+  let total = stages.reduce((a,b)=>a+b.questions.length,0);
+  let done = stages.slice(0,s).reduce((a,b)=>a+b.questions.length,0)+q;
+  document.getElementById("progress").style.width = (done/total*100)+"%";
+}
+
+function endGame(){
+  let resultText = "";
+  let winnerText = "";
+
+  if(score1 > score2){
+    winnerText = "الفائز: " + p1Name + " 🏆";
+    resultText = "الخاسر: " + p2Name + "<br>التحدي: " + randomPunishment();
+  }
+  else if(score2 > score1){
+    winnerText = "الفائز: " + p2Name + " 🏆";
+    resultText = "الخاسر: " + p1Name + "<br>التحدي: " + randomPunishment();
+  }
+  else{
+    winnerText = "تعادل 🤝";
+    resultText = "التحدي لكما:<br>كل واحد يرسل للثاني أكثر صورة قريبة لقلبه ❤️";
+  }
+
+  document.getElementById("question").innerHTML =
+  "انتهت اللعبة 🎉<br><br>" + winnerText + "<br><br>" + resultText;
+
+  document.getElementById("stage").innerText="الحكم النهائي";
+  document.getElementById("turn").innerText="";
+
+  // إخفاء الأزرار بعد النهاية
+  document.getElementById("answerBtn").style.display = "none";
+  document.getElementById("skipBtn").style.display = "none";
+}
+
+function randomPunishment(){
+  return punishments[Math.floor(Math.random()*punishments.length)];
+}
+</script>
+
+</body>
+</html>
